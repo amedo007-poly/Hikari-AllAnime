@@ -9,6 +9,7 @@ import PopularTabs from "../../components/PopularTabs";
 import GenresGrid from "../../components/GenresGrid";
 import ForYou from "../../components/ForYou";
 import { Brand } from "../../components/Brand";
+import { ProfileAvatar } from "../../components/Profile";
 import { PlayIcon } from "../../components/icons";
 import { posterGradient } from "../../lib/poster";
 import { getContinueWatching, type WatchEntry } from "../../lib/progress";
@@ -43,7 +44,7 @@ export default function HomePage() {
       {/* header (mobile only — desktop uses the sidebar) */}
       <header className="flex items-center justify-between px-[22px] pt-[max(18px,env(safe-area-inset-top))] md:hidden">
         <Brand size={56} />
-        <div className="h-[34px] w-[34px] rounded-full bg-surface ring-1 ring-hair" />
+        <ProfileAvatar />
       </header>
 
       <SpotlightHero items={spotlight} />

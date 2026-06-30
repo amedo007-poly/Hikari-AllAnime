@@ -99,6 +99,21 @@ export interface MalListEntry {
   mediaType: string;
 }
 
+export interface MalProfile {
+  name: string;
+  picture: string | null;
+}
+
+/** The signed-in user's MAL profile (name + avatar). */
+export async function getMe(accessToken: string): Promise<MalProfile> {
+  const res = await fetch(`${MAL_API}/users/@me?fields=name,picture`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) throw new Error(`MAL me ${res.status}`);
+  const j = await res.json();
+  return { name: j.name ?? "You", picture: j.picture ?? null };
+}
+
 export async function getAnimeList(
   accessToken: string,
   status: string,

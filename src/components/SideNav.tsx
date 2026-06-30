@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { HomeIcon, SearchIcon, BookmarkIcon, FilmIcon, TvIcon, StarIcon, ListIcon, GridIcon, SparkleIcon } from "./icons";
 import { Brand } from "./Brand";
 import RandomButton from "./RandomButton";
+import Profile from "./Profile";
 
 const tabs = [
   { href: "/", label: "Home", Icon: HomeIcon },
@@ -46,8 +47,9 @@ export default function SideNav() {
         })}
       </nav>
 
-      <div className="mt-6 px-1">
+      <div className="mt-auto flex flex-col gap-3 px-1 pt-6">
         <RandomButton label="Surprise me" />
+        <Profile />
       </div>
     </aside>
   );
