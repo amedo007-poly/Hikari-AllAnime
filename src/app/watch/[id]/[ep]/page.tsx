@@ -49,7 +49,9 @@ export default function WatchPage({
   // MAL auto-sync: highest episode already counted on the user's list (guards rewatch)
   const malConnected = useRef(false);
   const malWatched = useRef(0);
+  const malOnList = useRef(false);
   const malSyncing = useRef(false);
+  const malEnsuring = useRef(false);
 
   useEffect(() => {
     setLinks([]);
@@ -98,12 +100,14 @@ export default function WatchPage({
   useEffect(() => {
     malConnected.current = false;
     malWatched.current = 0;
+    malOnList.current = false;
     if (!meta.malId) return;
     fetch(`/api/mal/entry?malId=${meta.malId}`)
       .then((r) => r.json())
       .then((e) => {
         malConnected.current = !!e.connected;
         malWatched.current = e.watched ?? 0;
+        malOnList.current = !!e.onList;
       })
       .catch(() => {});
   }, [meta.malId]);
@@ -145,14 +149,29 @@ export default function WatchPage({
     maybeSyncMal(frac);
   }
 
-  // Count the episode as watched on MAL once ~90% through it (once per episode).
   function maybeSyncMal(frac: number) {
+    if (!malConnected.current || !meta.malId) return;
+    // Early: as soon as you actually start the episode, put the show on
+    // MAL as "Watching" (status only — doesn't touch the episode count).
+    if (frac > 0.03 && !malOnList.current && !malEnsuring.current) {
+      malEnsuring.current = true;
+      malOnList.current = true; // optimistic; blocks re-fire
+      fetch("/api/mal/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ animeId: Number(meta.malId), status: "watching" }),
+      })
+        .catch(() => {})
+        .finally(() => {
+          malEnsuring.current = false;
+        });
+    }
+    // Later: count the episode as watched once ~90% through (once per episode,
+    // never lowering the count on a rewatch).
     const epNum = Number(ep);
     if (
-      !malConnected.current ||
-      !meta.malId ||
       !Number.isFinite(epNum) ||
-      epNum <= malWatched.current || // rewatch / already counted — never lower
+      epNum <= malWatched.current ||
       frac < 0.9 ||
       malSyncing.current
     )
