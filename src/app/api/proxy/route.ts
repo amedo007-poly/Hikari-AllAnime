@@ -37,10 +37,34 @@ function rewriteManifest(body: string, manifestUrl: string, referer: string): st
 
 const HLS_HINT = /\.m3u8(\?|$)/i;
 
+// SSRF guard: only proxy public http(s) hosts — never loopback/private/link-local.
+function isForbiddenTarget(raw: string): boolean {
+  let u: URL;
+  try {
+    u = new URL(raw);
+  } catch {
+    return true;
+  }
+  if (u.protocol !== "http:" && u.protocol !== "https:") return true;
+  const host = u.hostname.toLowerCase();
+  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local") || host.endsWith(".internal"))
+    return true;
+  if (host === "0.0.0.0" || host === "[::1]" || host === "::1") return true;
+  // IPv4 literal in a private/reserved range
+  const m = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (m) {
+    const [a, b] = [Number(m[1]), Number(m[2])];
+    if (a === 10 || a === 127 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 169 && b === 254))
+      return true;
+  }
+  return false;
+}
+
 export async function GET(req: NextRequest) {
   const target = req.nextUrl.searchParams.get("url");
   const referer = req.nextUrl.searchParams.get("referer") ?? ALLANIME_REFERER;
   if (!target) return new Response("missing url", { status: 400 });
+  if (isForbiddenTarget(target)) return new Response("forbidden target", { status: 403 });
 
   const range = req.headers.get("range");
   const upstream = await fetch(target, {

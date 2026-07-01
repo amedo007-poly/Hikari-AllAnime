@@ -141,20 +141,37 @@ export async function getAnimeList(
   }));
 }
 
-/** Is this anime on the user's list? Returns its status or null. */
+export interface MalEntryStatus {
+  onList: boolean;
+  status: string | null;
+  watched: number;
+  score: number;
+  /** MAL's real total episode count (0 = unknown/ongoing) — the source of truth for "completed". */
+  totalEpisodes: number;
+}
+
+/** The user's list entry for an anime + MAL's real episode total. */
 export async function getAnimeStatus(
   accessToken: string,
   animeId: number,
-): Promise<{ status: string; watched: number; score: number } | null> {
-  const res = await fetch(`${MAL_API}/anime/${animeId}?fields=my_list_status`, {
+): Promise<MalEntryStatus | null> {
+  const res = await fetch(`${MAL_API}/anime/${animeId}?fields=my_list_status,num_episodes,status`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
-  if (res.status === 404) return null; // unknown id → simply not on the list
+  if (res.status === 404) return null; // unknown id
   if (!res.ok) throw new Error(`MAL status ${res.status}`);
   const j = await res.json();
   const s = j.my_list_status;
-  if (!s) return null;
-  return { status: s.status ?? "", watched: s.num_episodes_watched ?? 0, score: s.score ?? 0 };
+  // An airing show reports its planned count before it finishes; only trust
+  // num_episodes as a completion target once the show has finished airing.
+  const finishedAiring = j.status === "finished_airing";
+  return {
+    onList: !!s,
+    status: s?.status ?? null,
+    watched: s?.num_episodes_watched ?? 0,
+    score: s?.score ?? 0,
+    totalEpisodes: finishedAiring ? (j.num_episodes ?? 0) : 0,
+  };
 }
 
 /** Remove an anime from the user's list. */

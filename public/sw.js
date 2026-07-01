@@ -1,10 +1,16 @@
 // Minimal service worker — enables installability + an app-shell cache.
 // Streaming (API/proxy) always goes to network; only the static shell is cached.
-const CACHE = "hikari-shell-v1";
-const SHELL = ["/", "/search", "/list"];
+const CACHE = "hikari-shell-v2";
+const SHELL = ["/", "/search", "/mal"];
 
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
+  // Best-effort: one failed page (404/auth redirect) must not kill the install.
+  e.waitUntil(
+    caches
+      .open(CACHE)
+      .then((c) => Promise.allSettled(SHELL.map((u) => c.add(u))))
+      .then(() => self.skipWaiting()),
+  );
 });
 
 self.addEventListener("activate", (e) => {

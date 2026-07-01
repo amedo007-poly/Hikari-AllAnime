@@ -21,10 +21,11 @@ export async function GET(req: NextRequest) {
     const { result, tokens } = await callWithAuth(access, refresh, (t) => getAnimeStatus(t, malId));
     const res = NextResponse.json({
       connected: true,
-      onList: !!result,
+      onList: result?.onList ?? false,
       status: result?.status ?? null,
       watched: result?.watched ?? 0,
       score: result?.score ?? 0,
+      totalEpisodes: result?.totalEpisodes ?? 0,
     });
     if (tokens) {
       const secure = req.nextUrl.protocol === "https:";

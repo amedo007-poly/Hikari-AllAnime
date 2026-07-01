@@ -48,6 +48,7 @@ export default function WatchPage({
   const savedFrac = useRef(0);
   // MAL auto-sync: highest episode already counted on the user's list (guards rewatch)
   const malWatched = useRef(0);
+  const malTotal = useRef(0); // MAL's real episode total (0 = unknown/still airing)
   const malOnList = useRef(false);
   const malSyncing = useRef(false);
   const malEnsuring = useRef(false);
@@ -98,12 +99,14 @@ export default function WatchPage({
   // Pull current MAL watched count so auto-sync never lowers progress on a rewatch
   useEffect(() => {
     malWatched.current = 0;
+    malTotal.current = 0;
     malOnList.current = false;
     if (!meta.malId) return;
     fetch(`/api/mal/entry?malId=${meta.malId}`)
       .then((r) => r.json())
       .then((e) => {
         malWatched.current = e.watched ?? 0;
+        malTotal.current = e.totalEpisodes ?? 0;
         malOnList.current = !!e.onList;
       })
       .catch(() => {});
@@ -180,7 +183,9 @@ export default function WatchPage({
     )
       return;
     malSyncing.current = true;
-    const finished = meta.eps.length > 0 && epNum >= Number(meta.eps[meta.eps.length - 1]);
+    // "Completed" only when MAL's own finished-airing total says so —
+    // AllAnime's last available episode is NOT the series total for airing shows.
+    const finished = malTotal.current > 0 && epNum >= malTotal.current;
     fetch("/api/mal/update", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

@@ -13,18 +13,23 @@ const STATUSES = [
 
 interface Props {
   malId: number;
+  /** AllAnime's available-episode count — display fallback only. */
   totalEps: number;
 }
 
 /** Edit this show on the user's MyAnimeList: status, episode count, score. */
-export default function MalListPanel({ malId, totalEps }: Props) {
+export default function MalListPanel({ malId, totalEps: availableEps }: Props) {
   const [ready, setReady] = useState(false);
   const [connected, setConnected] = useState(true);
   const [onList, setOnList] = useState(false);
   const [status, setStatus] = useState("plan_to_watch");
   const [watched, setWatched] = useState(0);
   const [score, setScore] = useState(0);
+  // MAL's real total (finished shows only); 0 while airing → never auto-complete
+  const [malTotal, setMalTotal] = useState(0);
   const [busy, setBusy] = useState(false);
+
+  const totalEps = malTotal > 0 ? malTotal : availableEps;
 
   useEffect(() => {
     let alive = true;
@@ -34,6 +39,7 @@ export default function MalListPanel({ malId, totalEps }: Props) {
         if (!alive) return;
         setConnected(!!e.connected);
         setOnList(!!e.onList);
+        setMalTotal(e.totalEpisodes || 0);
         if (e.onList) {
           setStatus(e.status || "watching");
           setWatched(e.watched || 0);
@@ -96,17 +102,18 @@ export default function MalListPanel({ malId, totalEps }: Props) {
 
   function changeStatus(next: string) {
     setStatus(next);
-    // completing a show fills the episode count
-    if (next === "completed" && totalEps > 0) setWatched(totalEps);
-    patch({ status: next, ...(next === "completed" && totalEps > 0 ? { episodes: totalEps } : {}) });
+    // completing a show fills the episode count (only when MAL knows the real total)
+    if (next === "completed" && malTotal > 0) setWatched(malTotal);
+    patch({ status: next, ...(next === "completed" && malTotal > 0 ? { episodes: malTotal } : {}) });
   }
 
   function stepEp(delta: number) {
-    const max = totalEps > 0 ? totalEps : 9999;
+    // clamp to MAL's real total only — while airing, count can pass AllAnime's
+    const max = malTotal > 0 ? malTotal : 9999;
     const next = Math.max(0, Math.min(max, watched + delta));
     if (next === watched) return;
     setWatched(next);
-    const finished = totalEps > 0 && next >= totalEps;
+    const finished = malTotal > 0 && next >= malTotal;
     patch({ episodes: next, status: finished ? "completed" : status === "completed" ? "watching" : status });
     if (finished) setStatus("completed");
     else if (status === "completed") setStatus("watching");
@@ -185,7 +192,7 @@ export default function MalListPanel({ malId, totalEps }: Props) {
             <span className="min-w-[52px] text-center text-[13px] font-bold text-text tabular-nums">
               {watched}{totalEps > 0 ? ` / ${totalEps}` : ""}
             </span>
-            <button onClick={() => stepEp(1)} disabled={busy || (totalEps > 0 && watched >= totalEps)} className="grid h-6 w-6 place-items-center rounded-full text-[16px] font-bold text-text disabled:opacity-30">
+            <button onClick={() => stepEp(1)} disabled={busy || (malTotal > 0 && watched >= malTotal)} className="grid h-6 w-6 place-items-center rounded-full text-[16px] font-bold text-text disabled:opacity-30">
               +
             </button>
           </div>

@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
 // Per-user gate: you must be signed in with your own MyAnimeList account.
-// (Cookie names mirror lib/mal.ts; inlined here to keep the edge middleware
+// (Cookie names mirror lib/mal.ts; inlined here to keep this edge proxy
 // free of the node:crypto import that lib/mal.ts pulls in.)
 const COOKIE_ACCESS = "mal_at";
 const COOKIE_REFRESH = "mal_rt";
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   // Gate only active once MAL is configured; off in local dev without a client id.
   if (!process.env.MAL_CLIENT_ID) return NextResponse.next();
 
