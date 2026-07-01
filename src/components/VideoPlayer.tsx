@@ -188,13 +188,32 @@ export default function VideoPlayer({
     const wrap = wrapRef.current;
     const v = videoRef.current as HTMLVideoElement & {
       webkitEnterFullscreen?: () => void;
+      webkitDisplayingFullscreen?: boolean;
     };
+    // iPhone Safari can't fullscreen a <div> — only the <video> element itself.
+    const isIOS =
+      /iP(hone|od|ad)/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    if (isIOS && v?.webkitEnterFullscreen) {
+      if (!v.webkitDisplayingFullscreen) {
+        try {
+          v.webkitEnterFullscreen();
+        } catch {}
+      }
+      reveal();
+      return;
+    }
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(() => {});
     } else if (wrap?.requestFullscreen) {
-      wrap.requestFullscreen().catch(() => {});
+      // some browsers expose the method but reject — fall back to the video element
+      wrap.requestFullscreen().catch(() => {
+        try {
+          v?.webkitEnterFullscreen?.();
+        } catch {}
+      });
     } else if (v?.webkitEnterFullscreen) {
-      v.webkitEnterFullscreen(); // iOS native fullscreen
+      v.webkitEnterFullscreen();
     }
     reveal();
   };
