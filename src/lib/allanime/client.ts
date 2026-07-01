@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import {
   ALLANIME_API,
   ALLANIME_BASE,
@@ -35,13 +36,20 @@ interface RawCard {
   availableEpisodes?: Record<string, number> | null;
 }
 
+// AllAnime mixes score scales: most shows are 0–10 (9.26) but some carry the
+// AniList 0–100 average (79). Normalize everything to 0–10.
+function normScore(s: number | null | undefined): number | null {
+  if (s == null) return null;
+  return s > 10 ? Math.round(s) / 10 : s;
+}
+
 function toResult(c: RawCard): SearchResult {
   return {
     id: c._id,
     name: c.name,
     englishName: c.englishName ?? null,
     thumbnail: c.thumbnail ?? null,
-    score: c.score ?? null,
+    score: normScore(c.score),
     type: c.type ?? null,
     malId: c.malId != null ? String(c.malId) : null,
     aniListId: c.aniListId != null ? String(c.aniListId) : null,
@@ -62,7 +70,7 @@ export async function resolveByMal(
   return exact ?? results[0] ?? null;
 }
 
-async function postGraphQL(
+async function postGraphQLRaw(
   query: string,
   variables: Record<string, unknown>,
 ): Promise<string> {
@@ -74,6 +82,14 @@ async function postGraphQL(
   if (!res.ok) throw new Error(`AllAnime API ${res.status} ${res.statusText}`);
   return res.text();
 }
+
+// Metadata queries are cached for 5 min (keyed by query+variables) — fresh
+// enough for catalog data, and collapses the N identical upstream calls per
+// page view into cache hits. (POST responses skip Next's fetch cache, hence
+// the explicit unstable_cache wrapper. Sources stay uncached — see getGraphQL.)
+const postGraphQL = unstable_cache(postGraphQLRaw, ["allanime-gql"], {
+  revalidate: 300,
+});
 
 /** Persisted-query GET — the path the API's episode resolver actually accepts. */
 async function getGraphQL(
@@ -237,7 +253,14 @@ export async function getShowDetail(showId: string): Promise<ShowDetail> {
     description: s.description ?? null,
     genres: Array.isArray(s.genres) ? s.genres : [],
     status: s.status ?? null,
-    episodeDuration: s.episodeDuration ?? null,
+    // Mixed units upstream: seconds for most shows, milliseconds for some
+    // (1_440_000 ms = 24 min). Anything above 10 h can't be seconds.
+    episodeDuration:
+      s.episodeDuration != null
+        ? s.episodeDuration > 36000
+          ? Math.round(s.episodeDuration / 1000)
+          : s.episodeDuration
+        : null,
     year,
     season,
     studios: Array.isArray(s.studios) ? s.studios : [],
