@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import PosterCard from "../../../components/PosterCard";
 import { SparkleIcon } from "../../../components/icons";
-import { getMyList } from "../../../lib/mylist";
+import { getContinueWatching } from "../../../lib/progress";
 import type { SearchResult } from "../../../lib/allanime/types";
 
 interface Pick {
@@ -33,7 +33,7 @@ export default function AiPage() {
     setLoading(true);
     setError(null);
     setPicks(null);
-    const seeds = getMyList().slice(0, 12).map((s) => s.name);
+    const seeds = getContinueWatching().slice(0, 12).map((e) => e.name);
     try {
       const d = await fetch("/api/ai-recommend", {
         method: "POST",

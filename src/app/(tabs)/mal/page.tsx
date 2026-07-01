@@ -48,7 +48,7 @@ export default function MalPage() {
   return (
     <main className="px-[22px] pb-4 pt-[max(20px,env(safe-area-inset-top))] md:px-8 md:pt-10">
       <div className="flex items-center justify-between">
-        <h1 className="text-[24px] font-extrabold tracking-tight text-text md:text-[26px]">My Anime List</h1>
+        <h1 className="text-[24px] font-extrabold tracking-tight text-text md:text-[26px]">My List</h1>
         {status?.connected && (
           <button onClick={logout} className="text-[12px] font-semibold text-muted hover:text-text">
             Disconnect

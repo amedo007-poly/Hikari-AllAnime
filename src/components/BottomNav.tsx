@@ -12,7 +12,6 @@ import {
   FilmIcon,
   TvIcon,
   StarIcon,
-  ListIcon,
   GridIcon,
   SparkleIcon,
 } from "./icons";
@@ -27,8 +26,7 @@ const ALL = [
   { href: "/movie", label: "Movies", Icon: FilmIcon },
   { href: "/tv", label: "TV Series", Icon: TvIcon },
   { href: "/popular", label: "Popular", Icon: StarIcon },
-  { href: "/mal", label: "Anime List", Icon: ListIcon },
-  { href: "/list", label: "My List", Icon: BookmarkIcon },
+  { href: "/mal", label: "My List", Icon: BookmarkIcon },
 ];
 
 export default function BottomNav() {
@@ -38,7 +36,7 @@ export default function BottomNav() {
   const tabs = [
     { href: "/", label: "Home", Icon: HomeIcon },
     { href: "/search", label: "Search", Icon: SearchIcon },
-    { href: "/list", label: "My List", Icon: BookmarkIcon },
+    { href: "/mal", label: "My List", Icon: BookmarkIcon },
   ];
 
   return (

@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import PosterCard from "./PosterCard";
-import { getMyList } from "../lib/mylist";
 import { getContinueWatching } from "../lib/progress";
 import type { SearchResult } from "../lib/allanime/types";
 
@@ -13,12 +12,7 @@ export default function ForYou() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const ids = Array.from(
-      new Set([
-        ...getMyList().map((s) => s.id),
-        ...getContinueWatching().map((e) => e.showId),
-      ]),
-    );
+    const ids = Array.from(new Set(getContinueWatching().map((e) => e.showId)));
     if (ids.length === 0) {
       setLoading(false);
       return;

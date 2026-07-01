@@ -141,6 +141,31 @@ export async function getAnimeList(
   }));
 }
 
+/** Is this anime on the user's list? Returns its status or null. */
+export async function getAnimeStatus(
+  accessToken: string,
+  animeId: number,
+): Promise<{ status: string; watched: number } | null> {
+  const res = await fetch(`${MAL_API}/anime/${animeId}?fields=my_list_status`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) throw new Error(`MAL status ${res.status}`);
+  const j = await res.json();
+  const s = j.my_list_status;
+  if (!s) return null;
+  return { status: s.status ?? "", watched: s.num_episodes_watched ?? 0 };
+}
+
+/** Remove an anime from the user's list. */
+export async function removeAnime(accessToken: string, animeId: number): Promise<void> {
+  const res = await fetch(`${MAL_API}/anime/${animeId}/my_list_status`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  // 404 = wasn't on the list; treat as success
+  if (!res.ok && res.status !== 404) throw new Error(`MAL remove ${res.status}`);
+}
+
 /** Write back: set status / watched episodes / score on the user's MAL list. */
 export async function updateAnimeStatus(
   accessToken: string,

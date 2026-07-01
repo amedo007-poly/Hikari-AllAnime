@@ -52,7 +52,7 @@ export default function HomePage() {
       {/* continue watching */}
       {cw.length > 0 && (
         <section>
-          <SectionHeader title="Continue Watching" href="/list" />
+          <SectionHeader title="Continue Watching" href="/mal" />
           <div className="no-scrollbar flex gap-3 overflow-x-auto px-[22px] md:px-8">
             {cw.map((e) => (
               <ContinueCard key={e.showId} entry={e} />

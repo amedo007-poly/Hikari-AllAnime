@@ -46,6 +46,10 @@ export default function WatchPage({
   });
   const [skips, setSkips] = useState<{ type: string; start: number; end: number }[]>([]);
   const savedFrac = useRef(0);
+  // MAL auto-sync: highest episode already counted on the user's list (guards rewatch)
+  const malConnected = useRef(false);
+  const malWatched = useRef(0);
+  const malSyncing = useRef(false);
 
   useEffect(() => {
     setLinks([]);
@@ -90,6 +94,20 @@ export default function WatchPage({
       .catch(() => {});
   }, [meta.malId, ep]);
 
+  // Pull current MAL watched count so auto-sync never lowers progress on a rewatch
+  useEffect(() => {
+    malConnected.current = false;
+    malWatched.current = 0;
+    if (!meta.malId) return;
+    fetch(`/api/mal/entry?malId=${meta.malId}`)
+      .then((r) => r.json())
+      .then((e) => {
+        malConnected.current = !!e.connected;
+        malWatched.current = e.watched ?? 0;
+      })
+      .catch(() => {});
+  }, [meta.malId]);
+
   const proxiedSrc = useMemo(
     () => (picked ? buildProxyUrl(picked.url, picked.referer) : null),
     [picked],
@@ -124,6 +142,37 @@ export default function WatchPage({
       totalEps: meta.eps.length,
       mode,
     });
+    maybeSyncMal(frac);
+  }
+
+  // Count the episode as watched on MAL once ~90% through it (once per episode).
+  function maybeSyncMal(frac: number) {
+    const epNum = Number(ep);
+    if (
+      !malConnected.current ||
+      !meta.malId ||
+      !Number.isFinite(epNum) ||
+      epNum <= malWatched.current || // rewatch / already counted — never lower
+      frac < 0.9 ||
+      malSyncing.current
+    )
+      return;
+    malSyncing.current = true;
+    malWatched.current = epNum; // optimistic; blocks re-fire
+    const finished = meta.eps.length > 0 && epNum >= Number(meta.eps[meta.eps.length - 1]);
+    fetch("/api/mal/update", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        animeId: Number(meta.malId),
+        episodes: epNum,
+        status: finished ? "completed" : "watching",
+      }),
+    })
+      .catch(() => {})
+      .finally(() => {
+        malSyncing.current = false;
+      });
   }
 
   const go = (target: string) => router.push(`/watch/${id}/${target}?mode=${mode}`);
