@@ -149,6 +149,7 @@ export async function getAnimeStatus(
   const res = await fetch(`${MAL_API}/anime/${animeId}?fields=my_list_status`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
+  if (res.status === 404) return null; // unknown id → simply not on the list
   if (!res.ok) throw new Error(`MAL status ${res.status}`);
   const j = await res.json();
   const s = j.my_list_status;

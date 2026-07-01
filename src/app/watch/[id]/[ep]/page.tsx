@@ -47,7 +47,6 @@ export default function WatchPage({
   const [skips, setSkips] = useState<{ type: string; start: number; end: number }[]>([]);
   const savedFrac = useRef(0);
   // MAL auto-sync: highest episode already counted on the user's list (guards rewatch)
-  const malConnected = useRef(false);
   const malWatched = useRef(0);
   const malOnList = useRef(false);
   const malSyncing = useRef(false);
@@ -98,14 +97,12 @@ export default function WatchPage({
 
   // Pull current MAL watched count so auto-sync never lowers progress on a rewatch
   useEffect(() => {
-    malConnected.current = false;
     malWatched.current = 0;
     malOnList.current = false;
     if (!meta.malId) return;
     fetch(`/api/mal/entry?malId=${meta.malId}`)
       .then((r) => r.json())
       .then((e) => {
-        malConnected.current = !!e.connected;
         malWatched.current = e.watched ?? 0;
         malOnList.current = !!e.onList;
       })
@@ -150,22 +147,28 @@ export default function WatchPage({
   }
 
   function maybeSyncMal(frac: number) {
-    if (!malConnected.current || !meta.malId) return;
-    // Early: as soon as you actually start the episode, put the show on
-    // MAL as "Watching" (status only — doesn't touch the episode count).
+    const animeId = Number(meta.malId);
+    if (!Number.isFinite(animeId) || animeId <= 0) return; // no MAL link → can't sync
+
+    // Early: as soon as you actually start the episode, put the show on MAL as
+    // "Watching" (status only — doesn't touch the count). Attempt the write
+    // directly; the server enforces auth, so we don't gate on a status lookup.
     if (frac > 0.03 && !malOnList.current && !malEnsuring.current) {
       malEnsuring.current = true;
-      malOnList.current = true; // optimistic; blocks re-fire
       fetch("/api/mal/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ animeId: Number(meta.malId), status: "watching" }),
+        body: JSON.stringify({ animeId, status: "watching" }),
       })
+        .then((r) => {
+          if (r.ok) malOnList.current = true; // only mark done on success
+        })
         .catch(() => {})
         .finally(() => {
           malEnsuring.current = false;
         });
     }
+
     // Later: count the episode as watched once ~90% through (once per episode,
     // never lowering the count on a rewatch).
     const epNum = Number(ep);
@@ -177,17 +180,22 @@ export default function WatchPage({
     )
       return;
     malSyncing.current = true;
-    malWatched.current = epNum; // optimistic; blocks re-fire
     const finished = meta.eps.length > 0 && epNum >= Number(meta.eps[meta.eps.length - 1]);
     fetch("/api/mal/update", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        animeId: Number(meta.malId),
+        animeId,
         episodes: epNum,
         status: finished ? "completed" : "watching",
       }),
     })
+      .then((r) => {
+        if (r.ok) {
+          malWatched.current = epNum; // only advance on success
+          malOnList.current = true;
+        }
+      })
       .catch(() => {})
       .finally(() => {
         malSyncing.current = false;
