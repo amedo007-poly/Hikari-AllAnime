@@ -24,6 +24,7 @@ export async function GET(req: NextRequest) {
       onList: !!result,
       status: result?.status ?? null,
       watched: result?.watched ?? 0,
+      score: result?.score ?? 0,
     });
     if (tokens) {
       const secure = req.nextUrl.protocol === "https:";

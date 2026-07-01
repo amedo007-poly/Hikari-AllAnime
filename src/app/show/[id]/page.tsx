@@ -4,13 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useMemo, useState } from "react";
 import {
-  BookmarkIcon,
   ChevronLeft,
   ChevronRight,
   PlayIcon,
-  ShareIcon,
   StarIcon,
 } from "../../../components/icons";
+import MalListPanel from "../../../components/MalListPanel";
 import { heroGradient, posterGradient } from "../../../lib/poster";
 import { buildProxyUrl } from "../../../lib/proxy";
 import { getProgress } from "../../../lib/progress";
@@ -29,8 +28,6 @@ export default function ShowPage({ params }: { params: Promise<{ id: string }> }
   const [detail, setDetail] = useState<ShowDetail | null>(null);
   const [eps, setEps] = useState<EpisodesDetail>({ sub: [], dub: [], raw: [] });
   const [mode, setMode] = useState<Mode>("sub");
-  const [saved, setSaved] = useState(false);
-  const [savingList, setSavingList] = useState(false);
   const [resumeEp, setResumeEp] = useState<string | null>(null);
   const [infos, setInfos] = useState<Record<string, EpisodeInfo>>({});
 
@@ -41,40 +38,9 @@ export default function ShowPage({ params }: { params: Promise<{ id: string }> }
         if (d.detail) setDetail(d.detail);
         if (d.episodes) setEps(d.episodes);
         if (d.infos) setInfos(d.infos);
-        // reflect whether this show is on the user's MAL list
-        const malId = d.detail?.malId;
-        if (malId) {
-          fetch(`/api/mal/entry?malId=${malId}`)
-            .then((r) => r.json())
-            .then((e) => setSaved(!!e.onList))
-            .catch(() => {});
-        }
       });
     setResumeEp(getProgress(id)?.ep ?? null);
   }, [id]);
-
-  async function toggleList() {
-    if (!detail?.malId || savingList) return;
-    const next = !saved;
-    setSaved(next); // optimistic
-    setSavingList(true);
-    try {
-      const res = await fetch(next ? "/api/mal/update" : "/api/mal/remove", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          next
-            ? { animeId: detail.malId, status: "plan_to_watch" }
-            : { animeId: detail.malId },
-        ),
-      });
-      if (!res.ok) setSaved(!next); // revert on failure
-    } catch {
-      setSaved(!next);
-    } finally {
-      setSavingList(false);
-    }
-  }
 
   const list = mode === "dub" ? eps.dub : eps.sub;
   const hasDub = eps.dub.length > 0;
@@ -163,21 +129,12 @@ export default function ShowPage({ params }: { params: Promise<{ id: string }> }
           </p>
         )}
 
-        {/* actions */}
-        <div className="mt-4 flex gap-6">
-          <button
-            onClick={toggleList}
-            disabled={!detail?.malId || savingList}
-            title={detail?.malId ? "Sync to your MyAnimeList" : "Not linked to MyAnimeList"}
-            className="flex flex-col items-center gap-1 text-[11px] text-text2 transition disabled:opacity-40"
-            style={{ color: saved ? "var(--color-accent)" : undefined }}
-          >
-            <BookmarkIcon className="h-6 w-6" /> {saved ? "In My List" : "My List"}
-          </button>
-          <button className="flex flex-col items-center gap-1 text-[11px] text-text2">
-            <ShareIcon className="h-6 w-6" /> Share
-          </button>
-        </div>
+        {/* MyAnimeList: status / episode count / rating */}
+        {detail?.malId ? (
+          <MalListPanel malId={Number(detail.malId)} totalEps={list.length} />
+        ) : (
+          <p className="mt-4 text-[12px] text-muted">Not linked to MyAnimeList — can&apos;t track this one.</p>
+        )}
 
         {/* episodes header + sub/dub */}
         <div className="flex items-center justify-between pb-3 pt-[26px]">

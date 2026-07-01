@@ -145,7 +145,7 @@ export async function getAnimeList(
 export async function getAnimeStatus(
   accessToken: string,
   animeId: number,
-): Promise<{ status: string; watched: number } | null> {
+): Promise<{ status: string; watched: number; score: number } | null> {
   const res = await fetch(`${MAL_API}/anime/${animeId}?fields=my_list_status`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
@@ -154,7 +154,7 @@ export async function getAnimeStatus(
   const j = await res.json();
   const s = j.my_list_status;
   if (!s) return null;
-  return { status: s.status ?? "", watched: s.num_episodes_watched ?? 0 };
+  return { status: s.status ?? "", watched: s.num_episodes_watched ?? 0, score: s.score ?? 0 };
 }
 
 /** Remove an anime from the user's list. */
