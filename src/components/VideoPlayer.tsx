@@ -115,7 +115,16 @@ export default function VideoPlayer({
     setLevels([]);
     setCurLevel(-1);
     let hls: Hls | null = null;
-    if (isM3u8 && Hls.isSupported()) {
+    // iOS Safari: use Apple's native HLS pipeline, not hls.js. Since iOS 17.1
+    // Hls.isSupported() is true there (ManagedMediaSource), but MSE playback
+    // stalls video while audio keeps going. Native is rock-solid on iOS.
+    const nativeHls = video.canPlayType("application/vnd.apple.mpegurl") !== "";
+    const isIOS =
+      /iP(hone|od|ad)/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    if (isM3u8 && nativeHls && isIOS) {
+      video.src = src;
+    } else if (isM3u8 && Hls.isSupported()) {
       hls = new Hls({ enableWorker: true });
       hlsRef.current = hls;
       hls.loadSource(src);

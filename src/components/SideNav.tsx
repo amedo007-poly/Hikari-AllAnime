@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { HomeIcon, SearchIcon, BookmarkIcon, FilmIcon, TvIcon, StarIcon, GridIcon, SparkleIcon } from "./icons";
+import { HomeIcon, SearchIcon, BookmarkIcon, FilmIcon, TvIcon, StarIcon, GridIcon, SparkleIcon, ChatIcon } from "./icons";
 import { Brand } from "./Brand";
 import RandomButton from "./RandomButton";
 import Profile from "./Profile";
@@ -16,6 +16,7 @@ const tabs = [
   { href: "/tv", label: "TV Series", Icon: TvIcon },
   { href: "/popular", label: "Popular", Icon: StarIcon },
   { href: "/mal", label: "My List", Icon: BookmarkIcon },
+  { href: "/lounge", label: "Lounge", Icon: ChatIcon },
 ];
 
 export default function SideNav() {

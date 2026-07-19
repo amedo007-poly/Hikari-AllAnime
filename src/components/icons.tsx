@@ -88,6 +88,12 @@ export const TvIcon = (p: P) => (
 export const StarIcon = (p: P) => (
   <svg {...base} fill="currentColor" stroke="none" viewBox="0 0 24 24" {...p}><path d="m12 3 2.6 5.6 6 .8-4.4 4.2 1.1 6L12 16.8 6.7 19.6l1.1-6L3.4 9.4l6-.8z" /></svg>
 );
+export const ChatIcon = (p: P) => (
+  <svg {...base} {...p}><path d="M21 12a8 8 0 0 1-8 8H4l2.5-2.9A8 8 0 1 1 21 12z" /></svg>
+);
+export const ImageIcon = (p: P) => (
+  <svg {...base} {...p}><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="9" cy="10" r="1.6" /><path d="m5 19 5.5-5.5 3 3L17 13l4 4" /></svg>
+);
 export const ShareIcon = (p: P) => (
   <svg {...base} {...p}><circle cx="6" cy="12" r="2.5" /><circle cx="18" cy="6" r="2.5" /><circle cx="18" cy="18" r="2.5" /><path d="m8.2 10.8 7.6-3.6M8.2 13.2l7.6 3.6" /></svg>
 );

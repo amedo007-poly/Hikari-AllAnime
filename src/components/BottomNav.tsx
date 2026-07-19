@@ -14,6 +14,7 @@ import {
   StarIcon,
   GridIcon,
   SparkleIcon,
+  ChatIcon,
 } from "./icons";
 import { Brand } from "./Brand";
 import RandomButton from "./RandomButton";
@@ -27,6 +28,7 @@ const ALL = [
   { href: "/tv", label: "TV Series", Icon: TvIcon },
   { href: "/popular", label: "Popular", Icon: StarIcon },
   { href: "/mal", label: "My List", Icon: BookmarkIcon },
+  { href: "/lounge", label: "Lounge", Icon: ChatIcon },
 ];
 
 export default function BottomNav() {
